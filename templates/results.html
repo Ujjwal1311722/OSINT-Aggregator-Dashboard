@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Findings — OSINT Aggregator{% endblock %}
+{% block content %}
+
+{% set risk_word = "LOW EXPOSURE" if risk < 35 else ("MEDIUM EXPOSURE" if risk < 70 else "HIGH EXPOSURE") %}
+{% set risk_class = "low" if risk < 35 else ("medium" if risk < 70 else "high") %}
+
+<section class="findings">
+  <div class="findings-head">
+    <div>
+      <p class="eyebrow">FINDINGS &nbsp;·&nbsp; TYPE: {{ result_type|upper }}</p>
+      <h1>
+        {% if result_type == "domain" %}{{ result.domain }}
+        {% elif result_type == "breach" %}{{ result.email }}
+        {% elif result_type == "ip" %}{{ result.ip }}
+        {% elif result_type == "metadata" %}{{ result.filename }}
+        {% endif %}
+      </h1>
+    </div>
+    <div class="stamp stamp-{{ risk_class }}">{{ risk_word }}<span class="stamp-score">{{ risk }}/100</span></div>
+  </div>
+
+  {% if result_type == "domain" %}
+    <div class="dossier-grid">
+      <div class="folder-tab">
+        <h2>WHOIS</h2>
+        {% if result.whois.error %}
+          <p class="muted">{{ result.whois.error }}</p>
+        {% else %}
+          <dl>
+            <dt>Registrar</dt><dd>{{ result.whois.registrar or "—" }}</dd>
+            <dt>Created</dt><dd>{{ result.whois.creation_date or "—" }}</dd>
+            <dt>Expires</dt><dd>{{ result.whois.expiration_date or "—" }}</dd>
+            <dt>Org</dt><dd>{{ result.whois.org or "—" }}</dd>
+            <dt>Country</dt><dd>{{ result.whois.country or "—" }}</dd>
+          </dl>
+        {% endif %}
+      </div>
+
+      <div class="folder-tab">
+        <h2>Subdomains ({{ result.subdomains|length }})</h2>
+        <ul class="mono-list">
+          {% for sub in result.subdomains[:20] %}
+            <li>{{ sub }}</li>
+          {% else %}
+            <li class="muted">None found.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="folder-tab">
+        <h2>DNS Records</h2>
+        {% for rtype, vals in result.dns_records.items() %}
+          <dl class="dns-row">
+            <dt>{{ rtype }}</dt>
+            <dd>{{ vals|join(", ") if vals else "—" }}</dd>
+          </dl>
+        {% endfor %}
+      </div>
+    </div>
+
+  {% elif result_type == "breach" %}
+    <div class="folder-tab wide">
+      {% if result.error %}
+        <p class="muted">Lookup failed: {{ result.error }}</p>
+      {% elif result.breaches|length == 0 %}
+        <p>No known breaches found for this address.</p>
+      {% else %}
+        <table class="dossier-table">
+          <thead><tr><th>Breach</th><th>Date</th><th>Data exposed</th></tr></thead>
+          <tbody>
+            {% for b in result.breaches %}
+              <tr>
+                <td>{{ b.name }}</td>
+                <td>{{ b.breach_date }}</td>
+                <td>{{ b.data_classes|join(", ") }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+
+  {% elif result_type == "ip" %}
+    <div class="dossier-grid">
+      <div class="folder-tab">
+        <h2>Shodan</h2>
+        {% if not result.shodan.configured %}
+          <p class="muted">{{ result.shodan.note }}</p>
+        {% else %}
+          <dl>
+            <dt>Org</dt><dd>{{ result.shodan.org or "—" }}</dd>
+            <dt>OS</dt><dd>{{ result.shodan.os or "—" }}</dd>
+            <dt>Open ports</dt><dd>{{ result.shodan.open_ports|join(", ") if result.shodan.open_ports else "—" }}</dd>
+            <dt>Known vulns</dt><dd>{{ result.shodan.vulns|join(", ") if result.shodan.vulns else "—" }}</dd>
+          </dl>
+        {% endif %}
+      </div>
+      <div class="folder-tab">
+        <h2>AbuseIPDB</h2>
+        {% if not result.abuseipdb.configured %}
+          <p class="muted">{{ result.abuseipdb.note }}</p>
+        {% else %}
+          <dl>
+            <dt>Abuse confidence</dt><dd>{{ result.abuseipdb.abuse_confidence_score }}%</dd>
+            <dt>Reports</dt><dd>{{ result.abuseipdb.total_reports }}</dd>
+            <dt>Country</dt><dd>{{ result.abuseipdb.country_code or "—" }}</dd>
+          </dl>
+        {% endif %}
+      </div>
+    </div>
+
+  {% elif result_type == "metadata" %}
+    <div class="folder-tab wide">
+      {% if result.error %}
+        <p class="muted">{{ result.error }}</p>
+
+      {% elif result.file_type == "pdf" and result.pdf_meta %}
+        {% set pm = result.pdf_meta %}
+        {% if pm.has_embedded_javascript %}
+          <p class="alert-line">⚠ This PDF contains embedded JavaScript — a known vector for malicious PDFs.</p>
+        {% else %}
+          <p>No embedded JavaScript detected.</p>
+        {% endif %}
+        <h2>Document properties</h2>
+        <dl>
+          <dt>Title</dt><dd>{{ pm.title or "—" }}</dd>
+          <dt>Author</dt><dd>{{ pm.author or "—" }}</dd>
+          <dt>Subject</dt><dd>{{ pm.subject or "—" }}</dd>
+          <dt>Creator app</dt><dd>{{ pm.creator or "—" }}</dd>
+          <dt>Producer</dt><dd>{{ pm.producer or "—" }}</dd>
+          <dt>Created</dt><dd>{{ pm.creation_date or "—" }}</dd>
+          <dt>Modified</dt><dd>{{ pm.modification_date or "—" }}</dd>
+          <dt>Pages</dt><dd>{{ pm.page_count }}</dd>
+        </dl>
+
+      {% elif result.file_type == "zip" and result.zip_meta %}
+        {% set zm = result.zip_meta %}
+        {% if zm.any_encrypted %}
+          <p class="alert-line">⚠ {{ zm.encrypted_count }} encrypted entr{{ "y" if zm.encrypted_count == 1 else "ies" }} found inside this archive.</p>
+        {% else %}
+          <p>No encrypted entries detected.</p>
+        {% endif %}
+        {% if zm.comment %}
+          <p><strong>Archive comment:</strong> {{ zm.comment }}</p>
+        {% endif %}
+        <h2>Contents ({{ zm.entry_count }} entr{{ "y" if zm.entry_count == 1 else "ies" }}{% if zm.truncated %}, showing first 200{% endif %})</h2>
+        <ul class="mono-list">
+          {% for entry in zm.entries %}
+            <li>{{ entry.name }} <span class="muted">— {{ entry.size }} bytes{% if entry.modified %}, modified {{ entry.modified }}{% endif %}{% if entry.encrypted %} 🔒{% endif %}</span></li>
+          {% else %}
+            <li class="muted">Archive is empty.</li>
+          {% endfor %}
+        </ul>
+
+      {% elif result.file_type == "txt" and result.txt_meta %}
+        {% set tm = result.txt_meta %}
+        {% if tm.emails_found or tm.ips_found %}
+          <p class="alert-line">⚠ Sensitive strings found in this file — see below.</p>
+        {% else %}
+          <p>No emails or IP addresses detected in this file.</p>
+        {% endif %}
+        <h2>File stats</h2>
+        <dl>
+          <dt>Size</dt><dd>{{ tm.size_bytes }} bytes{% if tm.truncated %} (analysis truncated at 2MB){% endif %}</dd>
+          <dt>Encoding</dt><dd>{{ tm.encoding_guess }}</dd>
+          <dt>Lines</dt><dd>{{ tm.line_count }}</dd>
+          <dt>Words</dt><dd>{{ tm.word_count }}</dd>
+          <dt>Characters</dt><dd>{{ tm.char_count }}</dd>
+        </dl>
+        {% if tm.emails_found %}
+          <h2>Emails found ({{ tm.emails_found|length }})</h2>
+          <ul class="mono-list">
+            {% for e in tm.emails_found %}<li>{{ e }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+        {% if tm.ips_found %}
+          <h2>IP addresses found ({{ tm.ips_found|length }})</h2>
+          <ul class="mono-list">
+            {% for ip in tm.ips_found %}<li>{{ ip }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+
+      {% elif result.note %}
+        <p class="muted">{{ result.note }}</p>
+
+      {% else %}
+        {% if result.has_location_data %}
+          <p class="alert-line">⚠ GPS coordinates found: {{ result.gps_coordinates.latitude }}, {{ result.gps_coordinates.longitude }}</p>
+        {% else %}
+          <p>No embedded GPS coordinates found.</p>
+        {% endif %}
+        <h2>Raw EXIF fields</h2>
+        <dl>
+          {% for k, v in result.exif.items() %}
+            <dt>{{ k }}</dt><dd>{{ v }}</dd>
+          {% endfor %}
+        </dl>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <a href="{{ url_for('index') }}" class="back-link">← Open another file</a>
+</section>
+{% endblock %}

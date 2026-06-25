@@ -1,0 +1,21 @@
+# Environment / secrets
+.env
+ 
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+*.egg-info/
+ 
+# Runtime data
+osint_cache.db
+uploads/*
+!uploads/.gitkeep
+ 
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

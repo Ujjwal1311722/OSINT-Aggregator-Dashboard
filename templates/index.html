@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}New Lookup — OSINT Aggregator{% endblock %}
+{% block content %}
+
+<section class="intake">
+  <p class="eyebrow">INTAKE FORM &nbsp;·&nbsp; SELECT TARGET TYPE</p>
+  <h1>Open a new file.</h1>
+  <p class="lede">Enter one target below. Results pull only from public sources —
+  certificate transparency logs, DNS, and (where keys are configured) breach
+  and reputation databases.</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="domain">Domain</button>
+    <button class="tab-btn" data-tab="breach">Email</button>
+    <button class="tab-btn" data-tab="ip">IP Address</button>
+    <button class="tab-btn" data-tab="metadata">File Metadata</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-domain">
+    <form action="{{ url_for('lookup_domain') }}" method="post">
+      <label for="domain">Domain</label>
+      <input type="text" id="domain" name="domain" placeholder="example.com" required>
+      <button type="submit" class="submit-btn">Run domain recon →</button>
+    </form>
+    <p class="hint">Pulls WHOIS, DNS records, and subdomains via crt.sh certificate logs.</p>
+  </div>
+
+  <div class="tab-panel" id="tab-breach">
+    <form action="{{ url_for('lookup_breach') }}" method="post">
+      <label for="email">Email address</label>
+      <input type="email" id="email" name="email" placeholder="name@example.com" required>
+      <button type="submit" class="submit-btn">Check breach exposure →</button>
+    </form>
+    <p class="hint">Checks XposedOrNot — free, no API key needed.</p>
+  </div>
+
+  <div class="tab-panel" id="tab-ip">
+    <form action="{{ url_for('lookup_ip') }}" method="post">
+      <label for="ip">IP address</label>
+      <input type="text" id="ip" name="ip" placeholder="203.0.113.42" required>
+      <button type="submit" class="submit-btn">Check IP reputation →</button>
+    </form>
+    <p class="hint">Pulls Shodan exposure + AbuseIPDB reputation. Requires API keys.</p>
+  </div>
+
+  <div class="tab-panel" id="tab-metadata">
+    <form action="{{ url_for('lookup_metadata') }}" method="post" enctype="multipart/form-data">
+      <label for="file">Upload image / document / archive / text file</label>
+      <input type="file" id="file" name="file" accept=".png,.jpg,.jpeg,.pdf,.docx,.zip,.txt" required>
+      <button type="submit" class="submit-btn">Extract metadata →</button>
+    </form>
+    <p class="hint">Images: GPS/EXIF. PDFs: author, producer, embedded JS. ZIPs: internal file listing &amp; timestamps. TXT: encoding, stats, and exposed emails/IPs.</p>
+  </div>
+</section>
+
+<script>
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Case Log — OSINT Aggregator{% endblock %}
+{% block content %}
+<section class="findings">
+  <p class="eyebrow">CASE LOG &nbsp;·&nbsp; LAST 50 ENTRIES</p>
+  <h1>Lookup history.</h1>
+
+  <table class="dossier-table">
+    <thead><tr><th>Type</th><th>Target</th><th>Risk</th><th>Logged</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row["target_type"]|upper }}</td>
+          <td>{{ row["target_value"] }}</td>
+          <td>{{ row["risk_score"] }}/100</td>
+          <td class="muted">{{ row["created_at"] }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="muted">No lookups logged yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <a href="{{ url_for('index') }}" class="back-link">← Open another file</a>
+</section>
+{% endblock %}

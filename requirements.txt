@@ -1,0 +1,7 @@
+Flask==3.0.3
+requests==2.32.3
+python-whois==0.9.4
+dnspython==2.6.1
+Pillow==10.4.0
+Werkzeug==3.0.3
+pypdf2

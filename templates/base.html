@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}OSINT Aggregator{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="case-strap"></div>
+
+<header class="dossier-header">
+  <a href="{{ url_for('index') }}" class="case-title">
+    <span class="case-stamp-mark">⌖</span> CASE FILE: OSINT AGGREGATOR
+  </a>
+  <nav class="case-nav">
+    <a href="{{ url_for('index') }}">New Lookup</a>
+    <a href="{{ url_for('history') }}">Log</a>
+  </nav>
+</header>
+
+<main class="dossier-body">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flash-note">
+        {% for m in messages %}<p>NOTE: {{ m }}</p>{% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="dossier-footer">
+  For authorized / self-audit use only · Built with Flask · Public-source intel only
+</footer>
+</body>
+</html>
